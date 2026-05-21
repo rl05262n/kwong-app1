@@ -64,7 +64,7 @@ For production deployment, the API call routes through a Vite dev proxy (`/api/a
 
 ## ⚠️ Disclaimer
 
-This is a **computation aid only**. All outputs require independent verification by a qualified tax professional per Circular 230 § 10.22. AI-generated computations are not a substitute for professional judgment. I.R.C. § 6676 imposes a 20% penalty on erroneous refund claims.
+This is a **computation aid only**. All outputs require independent verification by a qualified tax professional per Circular 230 § 10.22. Computations are not a substitute for professional judgment. I.R.C. § 6676 imposes a 20% penalty on erroneous refund claims.
 
 ## License
 
