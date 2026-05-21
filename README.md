@@ -18,28 +18,6 @@ Produces both a **conservative estimate** (interest on declining principal) and 
 
 January 20, 2020 through July 10, 2023 (FEMA incident period + 60 statutory days). Claim deadline: **July 10, 2026**.
 
-## Quick Start
-
-```bash
-git clone https://github.com/YOUR_USERNAME/kwong-form843.git
-cd kwong-form843
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173` and either:
-1. **Paste** transcript text (see placeholder for preferred format)
-2. **Upload PDF** (requires Anthropic API key — gear icon → Settings)
-
-## Deploy to GitHub Pages
-
-```bash
-# Set your repo name in vite.config.js (base: '/your-repo-name/')
-npm run deploy
-```
-
-Then enable Pages in your repo Settings → Pages → Source: `gh-pages` branch.
-
 ## PDF Upload (Optional)
 
 The PDF scanner uses the Anthropic API to extract transcript text from scanned/native PDFs. Enter your API key in Settings (gear icon). The key stays in browser memory only — never logged or transmitted anywhere except the Anthropic API.
