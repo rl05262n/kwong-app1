@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 // ═══════════════════════════════════════════════════════════════
 const DISASTER_START = new Date(2020, 0, 20);
 const DISASTER_END = new Date(2023, 6, 10);
-const KWONG_DUE = new Date(2023, 6, 11);
+const KWONG_DUE = new Date(2023, 6, 10);
 const CLAIM_DEADLINE = new Date(2026, 6, 10);
 
 const RATES = [
@@ -275,7 +275,7 @@ function runAnalysis(p) {
   // ── FTF ──
   if (p.ftf.assessed > 0) {
     const work = [];
-    const filedBeforeKwong = p.filedDate && p.filedDate < KWONG_DUE;
+    const filedBeforeKwong = p.filedDate && p.filedDate <= KWONG_DUE;
     let kwongFTF = 0, abate = 0;
     if (filedBeforeKwong) {
       work.push(`Due date: ${fmt(p.statutoryDue)}`);
