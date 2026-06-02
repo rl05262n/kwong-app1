@@ -1,4 +1,4 @@
-# Kwong v. United States — Form 843 Computation Tool
+# Kwong v. United States — Form 843 Computation Tool (estimation tool ONLY! Please consult a tax professional) 
 
 Compute penalty and interest abatement claims under **I.R.C. § 7508A(d)** per [*Kwong v. United States*, 179 Fed. Cl. 382 (2025)](https://www.uscfc.uscourts.gov/sites/default/files/opinions/KWONG.pdf) and [*Abdo v. Commissioner*, 162 T.C. 148 (2024)](https://www.ustaxcourt.gov/UstcInOp/OpinionViewer.aspx?ID=14301).
 
