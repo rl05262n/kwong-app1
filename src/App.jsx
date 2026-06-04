@@ -577,7 +577,14 @@ export default function App() {
       <div style={{borderBottom:'3px solid #1a1a2e',paddingBottom:12,marginBottom:24}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <h1 style={{margin:0,fontSize:28,fontWeight:700,letterSpacing:'-0.5px'}}>Kwong v. United States</h1>
-          <button onClick={()=>setShowSettings(!showSettings)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,padding:4}} title="Settings">⚙️</button>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+  {!apiKey && (
+    <span style={{fontSize:11,color:'#856404',background:'#fff3cd',padding:'2px 8px',borderRadius:3,marginBottom:4,whiteSpace:'nowrap'}}>
+      Start here — enter API key
+    </span>
+  )}
+  <button onClick={()=>setShowSettings(!showSettings)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,padding:4}} title="Settings">⚙️</button>
+</div>
         </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginTop:4}}>
           <span style={{fontSize:15,color:'#666'}}>Form 843 Computation Tool</span>
