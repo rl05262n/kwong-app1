@@ -572,7 +572,7 @@ export default function App() {
         .btn{padding:10px 24px;border:none;border-radius:4px;font-family:'Ubuntu',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;}
         .btn-primary{background:#007cba;color:#fff;} .btn-primary:hover{background:#005a87;}
         .btn-secondary{background:#e8f0f7;color:#007cba;border:1px solid #b0c4d8;} .btn-secondary:hover{background:#d0e0f0;}
-        textarea{width:100%;border:1px solid #b0c4d8;border-radius:4px;padding:12px;font-family:'Ubuntu',sans-serif;font-size:12px;line-height:1.5;resize:vertical;}
+        textarea{width:100%;border:1px solid #b0c4d8;border-radius:4px;padding:12px;font-family:'Courier New',Courier,monospace;font-size:11px;line-height:1.6;resize:vertical;}
         textarea:focus{outline:none;border-color:#007cba;box-shadow:0 0 0 2px rgba(0,84,143,0.15);}
         table{width:100%;border-collapse:collapse;margin:12px 0;}
         th{text-align:left;padding:8px 12px;border-bottom:2px solid #007cba;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;}
@@ -640,28 +640,36 @@ export default function App() {
             </div>
             <hr className="div" />
 <div style={{textAlign:'center',color:'#4a5568',fontSize:13,margin:'8px 0'}}>or paste transcript text</div>
-            <textarea rows={16} value={text} onChange={e=>setText(e.target.value)} placeholder={`HEADER:
+<textarea rows={20} value={text} onChange={e=>setText(e.target.value)} placeholder={`HEADER:
 - Form Number: 1040
-- Tax Period: 12-31-2022
-- Tax Per Return: $77,764.00
-- Return Due Date or Return Received Date: 04-27-2023
-- Processing Date: 06-05-2023
-- Accrued Interest: $0.00 (As of: 01-19-2026)
-- Accrued Penalty: $0.00 (As of: 01-19-2026)
+- Tax Period: 12-31-2021
+- Tax Per Return: $42,318.00
+- Return Due Date or Return Received Date: 09-14-2022
+- Processing Date: 11-07-2022
+- Accrued Interest: $3,741.22 (As of: 03-24-2026)
+- Accrued Penalty: $4,085.63 (As of: 03-24-2026)
+- Account Balance: $18,276.44
 
 TRANSACTIONS:
-150   Tax return filed                        20231805  06-05-2023   $77,764.00
-806   W-2 or 1099 withholding                           04-15-2023  -$51,938.00
-166   Penalty for filing tax return after due date      06-05-2023   $1,162.17
-276   Penalty for late payment of tax         20231805  06-05-2023     $258.26`} />
+150   Tax return filed                               20223105  11-07-2022   $42,318.00
+806   W-2 or 1099 withholding                                  04-15-2022  -$29,451.00
+166   Penalty for filing tax return after due date   20223305  11-07-2022      $837.92
+276   Penalty for late payment of tax                20223305  11-07-2022      $193.04
+196   Interest charged for late payment              20223305  11-07-2022      $211.57
+971   Notice issued CP 0014                                    11-07-2022        $0.00
+960   Appointed representative                                 01-18-2023        $0.00
+530   Balance due account currently not collectible            06-22-2024        $0.00
+610   Payment with return                                      09-14-2022     -$412.00
+670   Payment                                                  05-19-2025     -$125.00
+290   Disallowed claim                               20241205  07-08-2024        $0.00`} />
 <div style={{display:'flex',gap:16,alignItems:'center',flexWrap:'wrap',padding:'8px 0'}}>
               <button onClick={()=>document.getElementById('format-guide').toggleAttribute('hidden')}
                 style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline'}}>
                 📋 Show format guide
               </button>
-              <a href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID" target="_blank" rel="noreferrer"
+              <a href="https://youtu.be/lQ2UWYlmTog?si=x8fBHZxTHDGbXqQz" target="_blank" rel="noreferrer"
                 style={{color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline',cursor:'pointer'}}>
-                ▶️ Watch tutorial
+                ▶️ Watch tutorial [Youtube]
               </a>
               <a href="https://github.com/rl05262n/kwong-app1" target="_blank" rel="noreferrer"
                 style={{color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline',cursor:'pointer'}}>
@@ -670,27 +678,36 @@ TRANSACTIONS:
             </div>
             <div id="format-guide" hidden style={{background:'#eaf1f8',border:'1px solid #b0c4d8',borderRadius:4,padding:12,marginBottom:8,fontSize:11,fontFamily:"'Ubuntu',sans-serif",lineHeight:1.6,color:'#4a5568'}}>
               <strong style={{color:'#007cba'}}>Expected Format:</strong>
-              <pre style={{margin:'6px 0 0',whiteSpace:'pre-wrap',fontSize:11,color:'#4a5568'}}>{`HEADER:
+              <pre style={{margin:'6px 0 0',whiteSpace:'pre-wrap',fontSize:11,color:'#4a5568'}}>{`HEADER (include all that appear on transcript):
 - Form Number: 1040
-- Tax Period: 12-31-2022
-- Tax Per Return: $77,764.00
-- Return Due Date or Return Received Date: 04-27-2023
-- Processing Date: 06-05-2023
-- Accrued Interest: $0.00 (As of: 01-19-2026)
-- Accrued Penalty: $0.00 (As of: 01-19-2026)
+- Tax Period: 12-31-2021
+- Tax Per Return: $42,318.00
+- Return Due Date or Return Received Date: 09-14-2022
+- Processing Date: 11-07-2022
+- Accrued Interest: $3,741.22 (As of: 03-24-2026)
+- Accrued Penalty: $4,085.63 (As of: 03-24-2026)
+- Account Balance: $18,276.44
 
-TRANSACTIONS:
-150   Tax return filed                        20231805  06-05-2023   $77,764.00
-806   W-2 or 1099 withholding                           04-15-2023  -$51,938.00
-166   Penalty for filing tax return after due date      06-05-2023   $1,162.17
-276   Penalty for late payment of tax         20231805  06-05-2023     $258.26
+TRANSACTIONS (include ALL lines, even $0.00):
+150   Tax return filed                               20223105  11-07-2022   $42,318.00
+806   W-2 or 1099 withholding                                  04-15-2022  -$29,451.00
+166   Penalty for filing tax return after due date   20223305  11-07-2022      $837.92
+276   Penalty for late payment of tax                20223305  11-07-2022      $193.04
+196   Interest charged for late payment              20223305  11-07-2022      $211.57
+971   Notice issued CP 0014                                    11-07-2022        $0.00
+960   Appointed representative                                 01-18-2023        $0.00
+530   Balance due account currently not collectible            06-22-2024        $0.00
+610   Payment with return                                      09-14-2022     -$412.00
+670   Payment                                                  05-19-2025     -$125.00
+290   Disallowed claim                               20241205  07-08-2024        $0.00
 
 KEY: Each transaction line needs three things:
-  1. 3-digit code (e.g. 150, 806, 166, 276, 196, 670)
-  2. Date in MM-DD-YYYY format (e.g. 06-05-2023)
-  3. Dollar amount with $ sign (e.g. $1,162.17 or -$51,938.00)
+  1. 3-digit code (e.g. 150, 806, 166, 276, 196, 610, 670, 290)
+  2. Date in MM-DD-YYYY format (e.g. 11-07-2022)
+  3. Dollar amount with $ sign (e.g. $837.92 or -$29,451.00)
 Cycle column (8 digits) is optional — skip it if not on transcript.
 Negative amounts = credits, withholding, or payments.
+$0.00 lines (971, 960, 530) are informational — include them anyway.
 Descriptions between code and date can be any text.`}</pre>
             </div>
             <div style={{display:'flex',gap:8,marginTop:12}}>
