@@ -551,7 +551,7 @@ function runAnalysis(p) {
   const intItem = results.items.find(i=>i.code==='§6601 Interest');
   const intDiff = intItem && intItem.abateSimplified!==undefined ? Math.round((intItem.abatement - intItem.abateSimplified)*100)/100 : 0;
   results.totalConservative = Math.round((results.totalLine2 - intDiff)*100)/100;
-  results.hasRange = intDiff > 1;
+  results.hasRange = intDiff > 0;
   const daysLeft = Math.max(0,Math.round((CLAIM_DEADLINE-new Date())/86400000));
   results.notes.push(`Claim deadline: ${fmt(CLAIM_DEADLINE)} (${daysLeft} days remaining)`);
  
