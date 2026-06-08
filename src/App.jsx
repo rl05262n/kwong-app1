@@ -329,14 +329,50 @@ function runAnalysis(p) {
     const kwongDB = computeFTPDecliningBalance(p.netTax, p.statutoryDue, p.payments, p.iaDate, returnTimely, true, accrualEnd);
     const abate = Math.max(0, Math.round((irsDB.total - kwongDB.total)*100)/100);
     if (abate > 0) {
+   // Pre-disaster payment total and starting balance
+      const preDisasterPayments = p.payments.filter(pay => pay.date <= DISASTER_END);
+      const preDisasterTotal = preDisasterPayments.reduce((s, pay) => s + pay.amount, 0);
+      const balanceAtDisasterEnd = Math.max(0, p.netTax - preDisasterTotal);
+ 
       const work = [
-        `IRS FTP (computed, 0.5%/mo from ${fmt(p.statutoryDue)}): $${$(irsDB.total)}`,
-        `Kwong FTP (disaster months excluded): $${$(kwongDB.total)}, ${kwongDB.note}`,
-        `Disaster-period months abated: ${kwongDB.disasterSkipped}`,
-        `Abatement: $${$(irsDB.total)} - $${$(kwongDB.total)} = $${$(abate)}`,
+        `── IRS-Normal FTP ──`,
+        `Net tax due: $${$(p.netTax)}`,
+        `Due date: ${fmt(p.statutoryDue)}`,
+        `IRS FTP rate: 0.5%/mo${p.iaDate ? `, reduced to 0.25%/mo from IA date (${fmt(p.iaDate)}) per §6651(h)` : ''}`,
+        `IRS FTP (computed): $${$(irsDB.total)} over ${irsDB.activeMonths + irsDB.disasterSkipped} months`,
+        ``,
+        `── Kwong-Adjusted FTP ──`,
+        `Payments through disaster end (${fmt(DISASTER_END)}): ${preDisasterPayments.length} payments, $${$(preDisasterTotal)}`,
+        `Balance at ${fmt(new Date(DISASTER_END.getTime() + 86400000))}: $${$(balanceAtDisasterEnd)}`,
+        `Kwong FTP (disaster months excluded): $${$(kwongDB.total)}`,
+        `  ${kwongDB.disasterSkipped} months skipped (disaster), ${kwongDB.activeMonths} months active`,
+        `  ${p.iaDate ? `IA rate 0.25%/mo from ${fmt(p.iaDate)}` : 'Standard rate 0.5%/mo'}`,
+        ``,
+        `── Abatement ──`,
+        `$${$(irsDB.total)} (IRS) − $${$(kwongDB.total)} (Kwong) = $${$(abate)}`,
       ];
-      const transcriptFTP = Math.max(p.ftp.assessed,0) + (p.accruedPen>0?p.accruedPen:0);
-      if (transcriptFTP > 0) work.push(`Transcript FTP (TC 276 + accrued): $${$(transcriptFTP)} (for reference)`);
+      const transcriptFTP = Math.max(p.ftp.assessed, 0) + (p.accruedPen > 0 ? p.accruedPen : 0);
+      if (transcriptFTP > 0) {
+        work.push(``);
+        work.push(`── Transcript Cross-Check ──`);
+        work.push(`TC 276 net assessed: $${$(p.ftp.assessed)}`);
+        work.push(`Accrued penalty (unassessed): $${$(p.accruedPen)}`);
+        work.push(`Transcript total FTP: $${$(transcriptFTP)}`);
+        work.push(`Computed IRS FTP: $${$(irsDB.total)}`);
+        const ftpVariance = Math.abs(irsDB.total - transcriptFTP);
+        const ftpPct = transcriptFTP > 0 ? (ftpVariance / transcriptFTP * 100).toFixed(1) : '0';
+        work.push(`Variance: $${$(ftpVariance)} (${ftpPct}%)${ftpVariance > 500 ? ' — see note below' : ''}`);
+        if (ftpVariance > 500) {
+          work.push(`NOTE: Variance likely due to IRS internal payment-application splits`);
+          work.push(`(IRS allocates payments across tax/penalty/interest sub-accounts;`);
+          work.push(` this model applies payments to tax principal first).`);
+          if (p.iaDate && irsDB.total > transcriptFTP) {
+            work.push(`Also: IRS retroactively adjusted FTP rate to 0.25% when IA was`);
+            work.push(`established (TC 271 reversal). Computed IRS FTP uses statutory`);
+            work.push(`0.5% for pre-IA months per §6651(a)(2).`);
+          }
+        }
+      }
       results.items.push({code:'§6651(a)(2) FTP', irsAssessed:irsDB.total, recomputed:kwongDB.total, abatement:abate, work, ftpDetail:kwongDB.detail});
       results.totalLine2 += abate;
     }
@@ -374,16 +410,60 @@ function runAnalysis(p) {
     const abateSimp = Math.max(0, Math.round((irsSimp.total - kwongSimp.total)*100)/100);
     intAbateSimplified = abateSimp;
     if (abate > 0) {
-      const intTranscriptTotal = Math.max(p.interest.assessed, 0) + (p.accruedInt > 0 ? p.accruedInt : 0);
-      const work = [
-        `Full §6622 (interest-on-interest): $${$(irsInt.total)} IRS − $${$(kwongInt.total)} Kwong = $${$(abate)}`,
-        `Simplified (principal only):       $${$(irsSimp.total)} IRS − $${$(kwongSimp.total)} Kwong = $${$(abateSimp)}`,
-        `Period: ${fmt(p.statutoryDue)} → ${fmt(endDate)}${taxPaidDate?' (tax paid)':' (unpaid)'}`,
-        `Disaster days excluded: ${kwongInt.daysExcluded}`,
-      ];
-      if (intTranscriptTotal > 0) work.push(`Transcript interest (TC 196 + accrued): $${$(intTranscriptTotal)} (for reference)`);
-      if (abate !== abateSimp) work.push(`Range: $${$(abateSimp)} (conservative) to $${$(abate)} (full §6622)`);
-      results.items.push({code:'§6601 Interest', irsAssessed:irsInt.total, recomputed:kwongInt.total, abatement:abate, abateSimplified:abateSimp, work, intWork:kwongInt.work});
+        const intTranscriptTotal = Math.max(p.interest.assessed, 0) + (p.accruedInt > 0 ? p.accruedInt : 0);
+        const work = [
+          `── IRS-Normal Interest (full §6622) ──`,
+          `Start: ${fmt(p.statutoryDue)} (statutory/extended due date)`,
+          `End: ${fmt(endDate)}${taxPaidDate ? ' (tax fully paid)' : ' (balance unpaid — accrual date)'}`,
+          `Method: Daily compounding per §6622, quarterly rates per §6621`,
+          `Starting balance: $${$(p.netTax)}`,
+          `IRS interest: $${$(irsInt.total)}`,
+        ];
+        // Add IRS segment breakdown
+        if (irsInt.work && irsInt.work.length > 0) {
+          work.push(``);
+          work.push(`── IRS Rate Segments ──`);
+          for (const seg of irsInt.work) {
+            const segInt = Math.round((seg.endBal - seg.startBal) * 100) / 100;
+            work.push(`  ${seg.from} → ${seg.to}: ${seg.rate}, ${seg.days}d, bal $${$(seg.startBal)}→$${$(seg.endBal)} (+$${$(Math.abs(segInt))})`);
+          }
+        }
+        work.push(``);
+        work.push(`── Kwong-Adjusted Interest ──`);
+        work.push(`Same parameters, but ${kwongInt.daysExcluded} disaster-period days excluded`);
+        work.push(`Kwong interest: $${$(kwongInt.total)}`);
+        // Add Kwong segment breakdown
+        if (kwongInt.work && kwongInt.work.length > 0) {
+          work.push(``);
+          work.push(`── Kwong Rate Segments ──`);
+          for (const seg of kwongInt.work) {
+            const segInt = Math.round((seg.endBal - seg.startBal) * 100) / 100;
+            const exNote = seg.excluded > 0 ? ` (${seg.excluded}d excluded)` : '';
+            work.push(`  ${seg.from} → ${seg.to}: ${seg.rate}, ${seg.days}d${exNote}, bal $${$(seg.startBal)}→$${$(seg.endBal)} (+$${$(Math.abs(segInt))})`);
+          }
+        }
+        work.push(``);
+        work.push(`── Abatement ──`);
+        work.push(`Full §6622: $${$(irsInt.total)} − $${$(kwongInt.total)} = $${$(abate)}`);
+        work.push(`Simplified (principal only): $${$(irsSimp.total)} − $${$(kwongSimp.total)} = $${$(abateSimp)}`);
+        if (abate !== abateSimp) work.push(`Range: $${$(abateSimp)} (conservative) to $${$(abate)} (full §6622)`);
+        // Transcript cross-check
+        if (intTranscriptTotal > 0) {
+          work.push(``);
+          work.push(`── Transcript Cross-Check ──`);
+          work.push(`TC 196 (assessed): $${$(p.interest.assessed)}`);
+          work.push(`Accrued interest (unassessed): $${$(p.accruedInt)}`);
+          work.push(`Transcript total: $${$(intTranscriptTotal)}`);
+          work.push(`Computed IRS total: $${$(irsInt.total)}`);
+          const intVar = Math.abs(irsInt.total - intTranscriptTotal);
+          const intPct = intTranscriptTotal > 0 ? (intVar / intTranscriptTotal * 100).toFixed(2) : '0';
+          work.push(`Variance: $${$(intVar)} (${intPct}%)`);
+          if (intVar > 100) {
+            work.push(`NOTE: Variance attributable to IRS internal payment-application`);
+            work.push(`splits and interest-on-penalty compounding (TC 340).`);
+          }
+        }
+        results.items.push({code:'§6601 Interest', irsAssessed:irsInt.total, recomputed:kwongInt.total, abatement:abate, abateSimplified:abateSimp, work, intWork:kwongInt.work, irsWork:irsInt.work});
       results.totalLine2 += abate;
     }
   }
@@ -474,6 +554,34 @@ function runAnalysis(p) {
   results.hasRange = intDiff > 1;
   const daysLeft = Math.max(0,Math.round((CLAIM_DEADLINE-new Date())/86400000));
   results.notes.push(`Claim deadline: ${fmt(CLAIM_DEADLINE)} (${daysLeft} days remaining)`);
+ 
+  // Payment schedule summary for transparency
+  if (p.payments.length > 0) {
+    const payWork = [
+      `── Payment Schedule (${p.payments.length} payments, $${$(p.payments.reduce((s,pay)=>s+pay.amount,0))}) ──`,
+    ];
+    let cumPaid = 0;
+    for (const pay of p.payments) {
+      cumPaid += pay.amount;
+      const remainingTax = Math.max(0, p.netTax - cumPaid);
+      const inD = inDisaster(pay.date);
+      payWork.push(`  ${fmt(pay.date)}: $${$(pay.amount)} → cumulative $${$(cumPaid)}, tax remaining $${$(remainingTax)}${inD ? ' [disaster]' : ''}`);
+    }
+    // Account balance reconciliation
+    const reconTax = p.taxGross - p.credits;
+    const reconPen = p.est.assessed + p.ftp.assessed + p.ftf.assessed;
+    const reconInt = p.interest.assessed;
+    const reconBal = reconTax + reconPen + reconInt - cumPaid;
+    payWork.push(``);
+    payWork.push(`── Account Balance Reconciliation ──`);
+    payWork.push(`Tax: $${$(reconTax)} + Penalties: $${$(reconPen)} + Interest: $${$(reconInt)} − Payments: $${$(cumPaid)}`);
+    payWork.push(`= $${$(reconBal)}`);
+    if (p.accruedInt > 0 || p.accruedPen > 0) {
+      payWork.push(`Computed balance: $${$(reconBal)} (verify against transcript account balance)`);
+    }
+    results.paymentSchedule = payWork;
+  }
+ 
   return results;
 }
 
@@ -483,6 +591,10 @@ function runAnalysis(p) {
 function WorkDetail({item}) {
   const [open, setOpen] = useState(false);
   const [ftpOpen, setFtpOpen] = useState(false);
+ 
+  // Style for section headers inside the work detail
+  const sectionStyle = {fontWeight:700, color:'#007cba', marginTop:8, borderBottom:'1px solid #b0c4d8', paddingBottom:2};
+ 
   return (
     <div style={{fontSize:12, color:'#4a5568'}}>
       <button onClick={()=>setOpen(!open)} style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:12,fontWeight:600,padding:'4px 0',textDecoration:'underline'}}>
@@ -490,26 +602,66 @@ function WorkDetail({item}) {
       </button>
       {open && (
         <div style={{background:'#eaf1f8',border:'1px solid #b0c4d8',borderRadius:4,padding:12,margin:'4px 0 8px',fontFamily:"'Ubuntu',sans-serif",fontSize:11,lineHeight:1.7,whiteSpace:'pre-wrap'}}>
-          {item.work.map((w,i) => <div key={i}>{w}</div>)}
+          {item.work.map((w,i) => {
+            // Render section headers with styling
+            if (w.startsWith('──') && w.endsWith('──')) {
+              return <div key={i} style={sectionStyle}>{w.replace(/──/g,'').trim()}</div>;
+            }
+            // Render empty lines as spacers
+            if (w.trim() === '') return <div key={i} style={{height:6}} />;
+            // Render NOTE lines with warning background
+            if (w.startsWith('NOTE:')) {
+              return <div key={i} style={{background:'#fff3cd',padding:'2px 6px',borderRadius:3,margin:'2px 0',fontSize:10}}>{w}</div>;
+            }
+            return <div key={i}>{w}</div>;
+          })}
+ 
+          {/* FTP month-by-month expandable table */}
           {item.ftpDetail && item.ftpDetail.length > 0 && (
             <>
-              <button onClick={()=>setFtpOpen(!ftpOpen)} style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:11,fontWeight:600,padding:'4px 0',textDecoration:'underline',marginTop:4}}>
-                {ftpOpen ? '▼ Hide month-by-month' : '▶ Show month-by-month FTP'}
+              <button onClick={()=>setFtpOpen(!ftpOpen)} style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:11,fontWeight:600,padding:'4px 0',textDecoration:'underline',marginTop:8}}>
+                {ftpOpen ? '▼ Hide month-by-month' : '▶ Show month-by-month FTP detail'}
               </button>
               {ftpOpen && (
-                <div style={{marginTop:4,maxHeight:300,overflow:'auto'}}>
+                <div style={{marginTop:4,maxHeight:400,overflow:'auto'}}>
                   <table style={{width:'100%',fontSize:10,borderCollapse:'collapse'}}>
-                    <thead><tr style={{borderBottom:'1px solid #b0c4d8'}}>
-                      <th style={{textAlign:'left',padding:'2px 4px'}}>Mo</th><th>Date</th><th style={{textAlign:'right'}}>Balance</th><th>Rate</th><th style={{textAlign:'right'}}>FTP</th><th>Note</th>
+                    <thead><tr style={{borderBottom:'1px solid #b0c4d8',background:'#dce8f2'}}>
+                      <th style={{textAlign:'left',padding:'3px 4px'}}>Mo</th>
+                      <th style={{textAlign:'left'}}>Date</th>
+                      <th style={{textAlign:'right'}}>Balance</th>
+                      <th style={{textAlign:'center'}}>Rate</th>
+                      <th style={{textAlign:'right'}}>FTP</th>
+                      <th style={{textAlign:'right'}}>Paid</th>
+                      <th style={{textAlign:'left'}}>Note</th>
                     </tr></thead>
-                    <tbody>{item.ftpDetail.map((m,i)=>(
-                      <tr key={i} style={{background:m.disaster?'#fff3cd':'transparent',borderBottom:'1px solid #e2e8f0'}}>
-                        <td style={{padding:'1px 4px'}}>{m.month}</td><td>{m.date}</td>
-                        <td style={{textAlign:'right'}}>${$(m.balance)}</td><td>{m.rate}</td>
-                        <td style={{textAlign:'right'}}>${$(m.ftp)}</td>
-                        <td style={{color:'#888'}}>{m.disaster?'DISASTER':''}{ m.paid>0?` paid $${$(m.paid)}`:''}</td>
+                    <tbody>
+                      {item.ftpDetail.map((m,i)=>{
+                        const cumFTP = item.ftpDetail.slice(0,i+1).reduce((s,x)=>s+x.ftp,0);
+                        return (
+                          <tr key={i} style={{background:m.disaster?'#fff3cd':'transparent',borderBottom:'1px solid #e2e8f0'}}>
+                            <td style={{padding:'2px 4px'}}>{m.month}</td>
+                            <td>{m.date}</td>
+                            <td style={{textAlign:'right',fontFamily:'monospace'}}>${$(m.balance)}</td>
+                            <td style={{textAlign:'center'}}>{m.rate}</td>
+                            <td style={{textAlign:'right',fontFamily:'monospace',color:m.ftp>0?'#2e8b57':'#888'}}>${$(m.ftp)}</td>
+                            <td style={{textAlign:'right',fontFamily:'monospace',color:m.paid>0?'#007cba':'#ccc'}}>{m.paid>0?`$${$(m.paid)}`:'-'}</td>
+                            <td style={{color:'#888',fontSize:9}}>{m.disaster?'DISASTER':''}{!m.disaster&&m.ftp>0?`cum $${$(Math.round(cumFTP*100)/100)}`:''}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{borderTop:'2px solid #007cba',fontWeight:700}}>
+                        <td colSpan={4} style={{padding:'3px 4px'}}>Total</td>
+                        <td style={{textAlign:'right',fontFamily:'monospace',color:'#2e8b57'}}>
+                          ${$(item.ftpDetail.reduce((s,m)=>s+m.ftp,0))}
+                        </td>
+                        <td style={{textAlign:'right',fontFamily:'monospace',color:'#007cba'}}>
+                          ${$(item.ftpDetail.reduce((s,m)=>s+m.paid,0))}
+                        </td>
+                        <td></td>
                       </tr>
-                    ))}</tbody>
+                    </tfoot>
                   </table>
                 </div>
               )}
@@ -520,6 +672,7 @@ function WorkDetail({item}) {
     </div>
   );
 }
+ 
 
 // ═══════════════════════════════════════════════════════════════
 // APP
@@ -754,40 +907,80 @@ Descriptions between code and date can be any text.`}</pre>
         <div className="card">
           <h2 style={{margin:'0 0 12px',fontSize:20}}>Kwong Computation</h2>
           <table><thead><tr>
-            <th>Component</th><th className="amt">IRS Amount</th><th className="amt">Recomputed</th><th className="amt">Abatement</th>
-          </tr></thead><tbody>
-            {results.items.map((item,i)=>(
-              <tr key={i}><td>
-                <div style={{fontWeight:600}}>{item.code}</div>
-                <WorkDetail item={item} />
-              </td>
-              <td className="amt">${$(item.irsAssessed)}</td>
-              <td className="amt">${$(item.recomputed)}</td>
-              <td className={`amt ${item.abatement>0?'pos':'zero'}`} style={{fontWeight:600}}>${$(item.abatement)}</td>
-              </tr>
-            ))}
-          </tbody><tfoot>
+            <th>Component</th>
+            <th className="amt">IRS Amount</th>
+            <th className="amt">Recomputed</th>
             {results.hasRange ? (<>
-              <tr style={{borderTop:'2px solid #007cba'}}>
-                <td style={{fontWeight:700,fontSize:14}}>Form 843 Line 2 (conservative)</td><td></td><td></td>
-                <td className="amt pos" style={{fontWeight:700,fontSize:16}}>${$(results.totalConservative)}</td>
-              </tr>
-              <tr>
-                <td style={{fontWeight:700,fontSize:14,color:'#4a5568'}}>Form 843 Line 2 (full §6622)</td><td></td><td></td>
-               <td className="amt pos" style={{fontWeight:700,fontSize:16,color:'#4a5568'}}>${$(results.totalLine2)}</td>
-              </tr>
-              <tr><td colSpan={4} style={{fontSize:12,color:'#4a5568',paddingTop:4}}>
-                Conservative: interest on declining tax principal only. Full §6622: interest-on-interest per IRS methodology. Request IRS recompute with corrected start date.
-              </td></tr>
+              <th className="amt" style={{fontSize:11,lineHeight:1.3}}>Abatement<br/><span style={{fontWeight:400,fontSize:10,color:'#4a5568'}}>(full §6622)</span></th>
+              <th className="amt" style={{fontSize:11,lineHeight:1.3}}>Abatement<br/><span style={{fontWeight:400,fontSize:10,color:'#4a5568'}}>(conservative)</span></th>
             </>) : (
-              <tr style={{borderTop:'2px solid #007cba'}}>
-                <td style={{fontWeight:700,fontSize:16}}>Form 843 Line 2</td><td></td><td></td>
-                <td className="amt pos" style={{fontWeight:700,fontSize:18}}>${$(results.totalLine2)}</td>
+              <th className="amt">Abatement</th>
+            )}
+          </tr></thead><tbody>
+            {results.items.map((item,i)=>{
+              const hasAlt = results.hasRange && item.abateSimplified !== undefined;
+              const conservativeAmt = hasAlt ? item.abateSimplified : item.abatement;
+              return (
+              <tr key={i}>
+                <td>
+                  <div style={{fontWeight:600}}>{item.code}</div>
+                  <WorkDetail item={item} />
+                </td>
+                <td className="amt">${$(item.irsAssessed)}</td>
+                <td className="amt">${$(item.recomputed)}</td>
+                <td className={`amt ${item.abatement>0?'pos':'zero'}`} style={{fontWeight:600}}>
+                  ${$(item.abatement)}
+                </td>
+                {results.hasRange && (
+                  <td className={`amt ${conservativeAmt>0?'pos':'zero'}`}
+                    style={{fontWeight:600, color: hasAlt && conservativeAmt !== item.abatement ? '#856404' : undefined}}>
+                    ${$(conservativeAmt)}
+                    {hasAlt && conservativeAmt !== item.abatement && (
+                      <div style={{fontSize:9,fontWeight:400,color:'#856404'}}>principal only</div>
+                    )}
+                  </td>
+                )}
               </tr>
+              );
+            })}
+          </tbody><tfoot>
+            <tr style={{borderTop:'2px solid #007cba'}}>
+              <td style={{fontWeight:700,fontSize:16}}>Form 843 Line 2</td>
+              <td></td><td></td>
+              <td className="amt pos" style={{fontWeight:700,fontSize:18}}>${$(results.totalLine2)}</td>
+              {results.hasRange && (
+                <td className="amt" style={{fontWeight:700,fontSize:18,color:'#4a5568'}}>${$(results.totalConservative)}</td>
+              )}
+            </tr>
+            {results.hasRange && (
+              <tr><td colSpan={5} style={{fontSize:11,color:'#888',paddingTop:4}}>
+                Full §6622 = interest compounds daily per IRS methodology. Conservative = interest on declining tax principal only (lower bound). The difference (${$((results.totalLine2 - results.totalConservative))}) is interest-on-interest. Request IRS recompute with corrected start date.
+              </td></tr>
             )}
           </tfoot></table>
         </div>
-
+        {results.paymentSchedule && (
+          <div className="card">
+            <details>
+              <summary style={{cursor:'pointer',fontWeight:600,fontSize:16,color:'#007cba',padding:'4px 0'}}>
+                📊 Payment Schedule & Account Reconciliation ({parsed.payments.length} payments)
+              </summary>
+              <div style={{background:'#eaf1f8',border:'1px solid #b0c4d8',borderRadius:4,padding:12,marginTop:8,fontFamily:"'Ubuntu',sans-serif",fontSize:11,lineHeight:1.7,whiteSpace:'pre-wrap',maxHeight:500,overflow:'auto'}}>
+                {results.paymentSchedule.map((w,i) => {
+                  if (w.startsWith('──') && w.endsWith('──')) {
+                    return <div key={i} style={{fontWeight:700,color:'#007cba',marginTop:8,borderBottom:'1px solid #b0c4d8',paddingBottom:2}}>{w.replace(/──/g,'').trim()}</div>;
+                  }
+                  if (w.trim() === '') return <div key={i} style={{height:6}} />;
+                  // Highlight disaster-period payments
+                  if (w.includes('[disaster]')) {
+                    return <div key={i} style={{background:'#fff3cd',padding:'1px 4px',borderRadius:2}}>{w}</div>;
+                  }
+                  return <div key={i}>{w}</div>;
+                })}
+              </div>
+            </details>
+          </div>
+        )}
         {results.notes.length>0&&<div className="card" style={{fontSize:13}}>
           {results.notes.map((n,i)=><div key={i} style={{padding:'2px 0'}}>📋 {n}</div>)}
         </div>}
