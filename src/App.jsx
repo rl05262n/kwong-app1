@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-
+import lasLogo from './The_Legal_Aid_Society_logo.png';
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
@@ -35,7 +35,19 @@ const TC_MAP = {
   "610":{type:"pay"},"670":{type:"pay"},"680":{type:"pay"},"706":{type:"pay"},
   "671":{type:"pay_rev"},"672":{type:"acct_adj"},"460":{type:"ext"},"960":{type:"info"},"971":{type:"info"},"582":{type:"info"},"360":{type:"info"},"530":{type:"info"},
 };
-
+// ═══════════════════════════════════════════════════════════════
+// LOGO COMPONENT
+// ═══════════════════════════════════════════════════════════════
+function LASLogo({ size = 120 }) {
+  return (
+    <img
+      src={lasLogo}
+      alt="The Legal Aid Society"
+      style={{ height: size, width: 'auto', objectFit: 'contain' }}
+      onError={(e) => { e.target.style.display = 'none'; console.error('Logo not found'); }}
+    />
+  );
+}
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
@@ -472,26 +484,26 @@ function WorkDetail({item}) {
   const [open, setOpen] = useState(false);
   const [ftpOpen, setFtpOpen] = useState(false);
   return (
-    <div style={{fontSize:12, color:'#555'}}>
-      <button onClick={()=>setOpen(!open)} style={{background:'none',border:'none',cursor:'pointer',color:'#1a1a2e',fontSize:12,fontWeight:600,padding:'4px 0',textDecoration:'underline'}}>
+    <div style={{fontSize:12, color:'#4a5568'}}>
+      <button onClick={()=>setOpen(!open)} style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:12,fontWeight:600,padding:'4px 0',textDecoration:'underline'}}>
         {open ? '▼ Hide work' : '▶ Show work'}
       </button>
       {open && (
-        <div style={{background:'#faf9f7',border:'1px solid #e8e4dd',borderRadius:4,padding:12,margin:'4px 0 8px',fontFamily:"'JetBrains Mono',monospace",fontSize:11,lineHeight:1.7,whiteSpace:'pre-wrap'}}>
+        <div style={{background:'#eaf1f8',border:'1px solid #b0c4d8',borderRadius:4,padding:12,margin:'4px 0 8px',fontFamily:"'Ubuntu',sans-serif",fontSize:11,lineHeight:1.7,whiteSpace:'pre-wrap'}}>
           {item.work.map((w,i) => <div key={i}>{w}</div>)}
           {item.ftpDetail && item.ftpDetail.length > 0 && (
             <>
-              <button onClick={()=>setFtpOpen(!ftpOpen)} style={{background:'none',border:'none',cursor:'pointer',color:'#1a1a2e',fontSize:11,fontWeight:600,padding:'4px 0',textDecoration:'underline',marginTop:4}}>
+              <button onClick={()=>setFtpOpen(!ftpOpen)} style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:11,fontWeight:600,padding:'4px 0',textDecoration:'underline',marginTop:4}}>
                 {ftpOpen ? '▼ Hide month-by-month' : '▶ Show month-by-month FTP'}
               </button>
               {ftpOpen && (
                 <div style={{marginTop:4,maxHeight:300,overflow:'auto'}}>
                   <table style={{width:'100%',fontSize:10,borderCollapse:'collapse'}}>
-                    <thead><tr style={{borderBottom:'1px solid #ccc'}}>
+                    <thead><tr style={{borderBottom:'1px solid #b0c4d8'}}>
                       <th style={{textAlign:'left',padding:'2px 4px'}}>Mo</th><th>Date</th><th style={{textAlign:'right'}}>Balance</th><th>Rate</th><th style={{textAlign:'right'}}>FTP</th><th>Note</th>
                     </tr></thead>
                     <tbody>{item.ftpDetail.map((m,i)=>(
-                      <tr key={i} style={{background:m.disaster?'#fff3cd':'transparent',borderBottom:'1px solid #eee'}}>
+                      <tr key={i} style={{background:m.disaster?'#fff3cd':'transparent',borderBottom:'1px solid #e2e8f0'}}>
                         <td style={{padding:'1px 4px'}}>{m.month}</td><td>{m.date}</td>
                         <td style={{textAlign:'right'}}>${$(m.balance)}</td><td>{m.rate}</td>
                         <td style={{textAlign:'right'}}>${$(m.ftp)}</td>
@@ -552,55 +564,60 @@ export default function App() {
   const daysLeft=Math.max(0,Math.round((CLAIM_DEADLINE-new Date())/86400000));
 
   return (
-    <div style={{fontFamily:'"Source Serif 4",Georgia,serif',maxWidth:920,margin:'0 auto',padding:'24px 16px',color:'#1a1a2e',lineHeight:1.6}}>
+    <div style={{fontFamily:'"Ubuntu",sans-serif',maxWidth:920,margin:'0 auto',padding:'24px 16px',color:'#007cba',lineHeight:1.6}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-        *{box-sizing:border-box;} .mono{font-family:'JetBrains Mono',monospace;font-size:13px;}
-        .card{background:#fff;border:1px solid #d4d0c8;border-radius:6px;padding:20px;margin:16px 0;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
-        .btn{padding:10px 24px;border:none;border-radius:4px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;}
-        .btn-primary{background:#1a1a2e;color:#fff;} .btn-primary:hover{background:#16213e;}
-        .btn-secondary{background:#f0ede8;color:#1a1a2e;border:1px solid #d4d0c8;} .btn-secondary:hover{background:#e8e4dd;}
-        textarea{width:100%;border:1px solid #d4d0c8;border-radius:4px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;resize:vertical;}
-        textarea:focus{outline:none;border-color:#1a1a2e;box-shadow:0 0 0 2px rgba(26,26,46,0.1);}
+       @import url('https://fonts.googleapis.com/css?family=Ubuntu:400,500,700&subset=greek,latin,greek-ext,vietnamese,cyrillic-ext,latin-ext,cyrillic');
+        *{box-sizing:border-box;} .mono{font-family:'Ubuntu',sans-serif;font-size:13px;font-weight:500;}
+        .card{background:#fff;border:1px solid #b0c4d8;border-radius:6px;padding:20px;margin:16px 0;box-shadow:0 1px 3px rgba(0,84,143,0.08);}
+        .btn{padding:10px 24px;border:none;border-radius:4px;font-family:'Ubuntu',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+        .btn-primary{background:#007cba;color:#fff;} .btn-primary:hover{background:#005a87;}
+        .btn-secondary{background:#e8f0f7;color:#007cba;border:1px solid #b0c4d8;} .btn-secondary:hover{background:#d0e0f0;}
+        textarea{width:100%;border:1px solid #b0c4d8;border-radius:4px;padding:12px;font-family:'Ubuntu',sans-serif;font-size:12px;line-height:1.5;resize:vertical;}
+        textarea:focus{outline:none;border-color:#007cba;box-shadow:0 0 0 2px rgba(0,84,143,0.15);}
         table{width:100%;border-collapse:collapse;margin:12px 0;}
-        th{text-align:left;padding:8px 12px;border-bottom:2px solid #1a1a2e;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;}
-        td{padding:8px 12px;border-bottom:1px solid #e8e4dd;font-size:14px;}
-        .amt{text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;}
-        .pos{color:#0d7a3f;} .zero{color:#888;}
+        th{text-align:left;padding:8px 12px;border-bottom:2px solid #007cba;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;}
+        td{padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:14px;}
+        .amt{text-align:right;font-family:'Ubuntu',sans-serif;font-size:13px;font-weight:500;}
+        .pos{color:#48C482;} .zero{color:#888;}
         .badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;}
-        .badge-warn{background:#fff3cd;color:#856404;} .badge-ok{background:#d4edda;color:#155724;} .badge-dead{background:#f8d7da;color:#721c24;}
-        .drop-zone{border:2px dashed #d4d0c8;border-radius:8px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s;}
-        .drop-zone:hover{border-color:#1a1a2e;background:#faf9f7;}
-        hr.div{border:none;border-top:1px solid #e8e4dd;margin:20px 0;}
+        .badge-warn{background:#fff3cd;color:#856404;} .badge-ok{background:#d4f0e2;color:#2e8b57;} .badge-dead{background:#fde0de;color:#d94535;}
+        .drop-zone{border:2px dashed #b0c4d8;border-radius:8px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s;}
+        .drop-zone:hover{border-color:#007cba;background:#eaf1f8;}
+        hr.div{border:none;border-top:1px solid #d0e0f0;margin:20px 0;}
       `}</style>
 
-      <div style={{borderBottom:'3px solid #1a1a2e',paddingBottom:12,marginBottom:24}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <h1 style={{margin:0,fontSize:28,fontWeight:700,letterSpacing:'-0.5px'}}>Kwong v. United States</h1>
+      <div style={{borderBottom:'3px solid #007cba',paddingBottom:12,marginBottom:24}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <LASLogo size={85} />
+            <div>
+              <h1 style={{margin:0,fontSize:28,fontWeight:700,letterSpacing:'-0.5px'}}>Kwong v. United States</h1>
+              <span style={{fontSize:15,color:'#4a5568'}}>Form 843 Computation Tool</span>
+            </div>
+          </div>
           <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
-  {!apiKey && (
-    <span style={{fontSize:11,color:'#856404',background:'#fff3cd',padding:'2px 8px',borderRadius:3,marginBottom:4,whiteSpace:'nowrap'}}>
-      Start here — enter API key
-    </span>
-  )}
-  <button onClick={()=>setShowSettings(!showSettings)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,padding:4}} title="Settings">⚙️</button>
-</div>
+            {!apiKey && (
+              <span style={{fontSize:11,color:'#856404',background:'#fff3cd',padding:'2px 8px',borderRadius:3,marginBottom:4,whiteSpace:'nowrap'}}>
+                Start here: Enter API key
+              </span>
+            )}
+            <button onClick={()=>setShowSettings(!showSettings)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,padding:4}} title="Settings">⚙️</button>
+          </div>
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginTop:4}}>
-          <span style={{fontSize:15,color:'#666'}}>Form 843 Computation Tool</span>
+        <div style={{display:'flex',justifyContent:'flex-end',marginTop:4}}>
           <span className={`badge ${daysLeft<30?'badge-dead':'badge-warn'}`}>{daysLeft} days until deadline</span>
         </div>
         {showSettings && (
-          <div style={{marginTop:12,padding:16,background:'#f5f3ef',borderRadius:6,fontSize:13}}>
+          <div style={{marginTop:12,padding:16,background:'#e8f0f7',borderRadius:6,fontSize:13}}>
             <div style={{fontWeight:600,marginBottom:8}}>API Key (for PDF scanning)</div>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)}
-                placeholder="sk-ant-..." style={{flex:1,padding:'6px 10px',border:'1px solid #d4d0c8',borderRadius:4,fontFamily:'monospace',fontSize:12}} />
-              <span style={{color:apiKey?'#0d7a3f':'#888'}}>{apiKey?'✓ Set':'Not set'}</span>
+                placeholder="sk-ant-..." style={{flex:1,padding:'6px 10px',border:'1px solid #b0c4d8',borderRadius:4,fontFamily:"'Ubuntu',sans-serif",fontSize:12}} />
+              <span style={{color:apiKey?'#48C482':'#888'}}>{apiKey?'✓ Set':'Not set'}</span>
             </div>
-            <div style={{marginTop:6,color:'#888',fontSize:11}}>
-              Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" style={{color:'#1a1a2e'}}>console.anthropic.com</a>. 
-              Stored in browser memory only — never logged or shared. Required for PDF upload. Not needed for text paste.
+            <div style={{marginTop:6,color:'#4a5568',fontSize:11}}>
+              Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer" style={{color:'#007cba'}}>console.anthropic.com</a>.
+              Stored in browser memory only. Never logged or shared. Required for PDF upload. Not needed for text paste.
             </div>
           </div>
         )}
@@ -616,36 +633,65 @@ export default function App() {
                 onChange={e=>{const f=e.target.files[0];if(!f)return;if(f.name.endsWith('.txt')){const r=new FileReader();r.onload=()=>{setText(r.result);setStep(2);};r.readAsText(f);}else handlePDF(f);}} />
               {loading?<div style={{fontSize:16}}>Scanning transcript... ⏳</div>:
               <><div style={{fontSize:18,fontWeight:600,marginBottom:8}}>Drop PDF or text file here</div>
-              <div style={{fontSize:14,color:'#888'}}>or click to browse • Scanned PDFs supported via transcription</div></>}
+              <div style={{fontSize:14,color:'#4a5568'}}>or click to browse • Scanned PDFs supported via transcription</div></>}
             </div>
             <hr className="div" />
-            <div style={{textAlign:'center',color:'#888',fontSize:13,margin:'8px 0'}}>or paste transcript text</div>
-            <textarea rows={12} value={text} onChange={e=>setText(e.target.value)} placeholder={`Form 1040 Account Transcript
-Form Number: 1040
-Report for Tax Period Ending: 12-31-2022
-Tax per return: $77,764.00
-Return due date or return received date (whichever is later): 04-27-2023
-Processing date: 06-05-2023
-Accrued interest: $0.00 As of: 01-19-2026
-Accrued penalty: $0.00 As of: 01-19-2026
+<div style={{textAlign:'center',color:'#4a5568',fontSize:13,margin:'8px 0'}}>or paste transcript text</div>
+            <textarea rows={16} value={text} onChange={e=>setText(e.target.value)} placeholder={`HEADER:
+- Form Number: 1040
+- Tax Period: 12-31-2022
+- Tax Per Return: $77,764.00
+- Return Due Date or Return Received Date: 04-27-2023
+- Processing Date: 06-05-2023
+- Accrued Interest: $0.00 (As of: 01-19-2026)
+- Accrued Penalty: $0.00 (As of: 01-19-2026)
 
-TRANSACTIONS
-CODE  DESCRIPTION                                    CYCLE      DATE         AMOUNT
-150   Tax return filed                               20231805   06-05-2023   $77,764.00
-806   W-2 or 1099 withholding                                   04-15-2023   -$51,938.00
-166   Penalty for filing tax return after the due date          06-05-2023   $1,162.17
-276   Penalty for late payment of tax                           06-05-2023   $258.26
-196   Interest charged for late payment                         06-05-2023   $265.24
-670   Payment                                                   08-08-2025   -$63.00
+TRANSACTIONS:
+150   Tax return filed                        20231805  06-05-2023   $77,764.00
+806   W-2 or 1099 withholding                           04-15-2023  -$51,938.00
+166   Penalty for filing tax return after due date      06-05-2023   $1,162.17
+276   Penalty for late payment of tax         20231805  06-05-2023     $258.26`} />
+<div style={{display:'flex',gap:16,alignItems:'center',padding:'8px 0'}}>
+              <button onClick={()=>document.getElementById('format-guide').toggleAttribute('hidden')}
+                style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline'}}>
+                📋 Show format guide
+              </button>
+              <a href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID" target="_blank" rel="noreferrer"
+                style={{color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline',cursor:'pointer'}}>
+                ▶️ Watch tutorial
+              </a>
+            </div>
+            <div id="format-guide" hidden style={{background:'#eaf1f8',border:'1px solid #b0c4d8',borderRadius:4,padding:12,marginBottom:8,fontSize:11,fontFamily:"'Ubuntu',sans-serif",lineHeight:1.6,color:'#4a5568'}}>
+              <strong style={{color:'#007cba'}}>Expected Format:</strong>
+              <pre style={{margin:'6px 0 0',whiteSpace:'pre-wrap',fontSize:11,color:'#4a5568'}}>{`HEADER:
+- Form Number: 1040
+- Tax Period: 12-31-2022
+- Tax Per Return: $77,764.00
+- Return Due Date or Return Received Date: 04-27-2023
+- Processing Date: 06-05-2023
+- Accrued Interest: $0.00 (As of: 01-19-2026)
+- Accrued Penalty: $0.00 (As of: 01-19-2026)
 
-KEY: Each transaction needs 3-digit code, MM-DD-YYYY date, and $amount on ONE line.
-Cycle column is optional. Negative amounts = credits/payments.`} />
+TRANSACTIONS:
+150   Tax return filed                        20231805  06-05-2023   $77,764.00
+806   W-2 or 1099 withholding                           04-15-2023  -$51,938.00
+166   Penalty for filing tax return after due date      06-05-2023   $1,162.17
+276   Penalty for late payment of tax         20231805  06-05-2023     $258.26
+
+KEY: Each transaction line needs three things:
+  1. 3-digit code (e.g. 150, 806, 166, 276, 196, 670)
+  2. Date in MM-DD-YYYY format (e.g. 06-05-2023)
+  3. Dollar amount with $ sign (e.g. $1,162.17 or -$51,938.00)
+Cycle column (8 digits) is optional — skip it if not on transcript.
+Negative amounts = credits, withholding, or payments.
+Descriptions between code and date can be any text.`}</pre>
+            </div>
             <div style={{display:'flex',gap:8,marginTop:12}}>
               <button className="btn btn-primary" onClick={()=>{if(text.trim())setStep(2);}} disabled={!text.trim()}>Continue →</button>
             </div>
           </>)}
           {step===2 && (<>
-            <div style={{fontSize:14,color:'#666',marginBottom:12}}>Review and correct before computing.</div>
+            <div style={{fontSize:14,color:'#4a5568',marginBottom:12}}>Review and correct before computing.</div>
             <textarea rows={20} value={text} onChange={e=>setText(e.target.value)} />
             <div style={{display:'flex',gap:8,marginTop:12}}>
               <button className="btn btn-primary" onClick={handleParse}>Compute Form 843 →</button>
@@ -691,19 +737,19 @@ Cycle column is optional. Negative amounts = credits/payments.`} />
             ))}
           </tbody><tfoot>
             {results.hasRange ? (<>
-              <tr style={{borderTop:'2px solid #1a1a2e'}}>
+              <tr style={{borderTop:'2px solid #007cba'}}>
                 <td style={{fontWeight:700,fontSize:14}}>Form 843 Line 2 (conservative)</td><td></td><td></td>
                 <td className="amt pos" style={{fontWeight:700,fontSize:16}}>${$(results.totalConservative)}</td>
               </tr>
               <tr>
-                <td style={{fontWeight:700,fontSize:14,color:'#555'}}>Form 843 Line 2 (full §6622)</td><td></td><td></td>
-                <td className="amt pos" style={{fontWeight:700,fontSize:16,color:'#555'}}>${$(results.totalLine2)}</td>
+                <td style={{fontWeight:700,fontSize:14,color:'#4a5568'}}>Form 843 Line 2 (full §6622)</td><td></td><td></td>
+               <td className="amt pos" style={{fontWeight:700,fontSize:16,color:'#4a5568'}}>${$(results.totalLine2)}</td>
               </tr>
-              <tr><td colSpan={4} style={{fontSize:12,color:'#666',paddingTop:4}}>
+              <tr><td colSpan={4} style={{fontSize:12,color:'#4a5568',paddingTop:4}}>
                 Conservative: interest on declining tax principal only. Full §6622: interest-on-interest per IRS methodology. Request IRS recompute with corrected start date.
               </td></tr>
             </>) : (
-              <tr style={{borderTop:'2px solid #1a1a2e'}}>
+              <tr style={{borderTop:'2px solid #007cba'}}>
                 <td style={{fontWeight:700,fontSize:16}}>Form 843 Line 2</td><td></td><td></td>
                 <td className="amt pos" style={{fontWeight:700,fontSize:18}}>${$(results.totalLine2)}</td>
               </tr>
@@ -715,8 +761,8 @@ Cycle column is optional. Negative amounts = credits/payments.`} />
           {results.notes.map((n,i)=><div key={i} style={{padding:'2px 0'}}>📋 {n}</div>)}
         </div>}
 
-        <div className="card" style={{fontSize:13,color:'#666'}}>
-          <strong>Legal Basis:</strong> I.R.C. § 7508A(d) (2019 version); <em>Kwong v. United States</em>, 179 Fed. Cl. 382 (2025); <em>Abdo v. Commissioner</em>, 162 T.C. 148 (2024). Disaster period: Jan 20, 2020 – Jul 10, 2023. Computation aid only — verify per Circular 230 § 10.22.
+        <div className="card" style={{fontSize:13,color:'#4a5568'}}>
+          <strong>Legal Basis:</strong> I.R.C. § 7508A(d) (2019 version); <em>Kwong v. United States</em>, 179 Fed. Cl. 382 (2025); <em>Abdo v. Commissioner</em>, 162 T.C. 148 (2024). Disaster period: Jan 20, 2020 – Jul 10, 2023. Computation aid only, verify per Circular 230 § 10.22.
         </div>
 
         <div style={{display:'flex',gap:8,margin:'16px 0'}}>
