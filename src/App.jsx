@@ -51,7 +51,8 @@ function LASLogo({ size = 120 }) {
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
-const d = (s) => { if(!s)return null; if(s instanceof Date)return s; let p=String(s).match(/(\d{4})-(\d{2})-(\d{2})/); if(p)return new Date(+p[1],+p[2]-1,+p[3]); p=String(s).match(/(\d{2})[-/](\d{2})[-/](\d{4})/); return p?new Date(+p[3],+p[1]-1,+p[2]):null; };
+const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const d = (s) => { if(!s)return null; if(s instanceof Date)return s; let p=String(s).match(/(\d{4})-(\d{2})-(\d{2})/); if(p)return new Date(+p[1],+p[2]-1,+p[3]); p=String(s).match(/(\d{2})[-/](\d{2})[-/](\d{4})/); if(p)return new Date(+p[3],+p[1]-1,+p[2]); p=String(s).match(/([A-Za-z]+)\.?\s+(\d{1,2}),?\s+(\d{4})/); if(p){const mn=MON[p[1].toLowerCase().slice(0,3)];if(mn!==undefined)return new Date(+p[3],mn,+p[2]);} return null; };
 const fmt = (dt) => dt?`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`:'';
 const diffDays = (a,b) => Math.round((b-a)/86400000);
 const isLeap = (y) => (y%4===0&&y%100!==0)||y%400===0;
@@ -81,14 +82,18 @@ function parseTranscript(text) {
     if (!h.taxYear&&(m=lc.match(/12[-/]31[-/](\d{4})/))&&/period|ending|tax year/i.test(lc)) h.taxYear=m[1];
     if ((m=lc.match(/Return\s+Received\s+Date[:\s]+(\d{2}[-/]\d{2}[-/]\d{4})/i))) h.rrd=d(m[1]);
     if (!h.rrd&&(m=lc.match(/return\s+received\s+date\s*\(whichever\s+is\s+later\)[:\s]+(\d{2}[-/]\d{2}[-/]\d{4})/i))) h.rrd=d(m[1]);
+    if (!h.rrd&&(m=lc.match(/(?:received\s+date|whichever\s+is\s+later).*?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})/i))) h.rrd=d(m[1]);
     if ((m=lc.match(/Return\s+Due\s+Date[:\s]+(\d{2}[-/]\d{2}[-/]\d{4})/i))) h.dueDate=d(m[1]);
+    if (!h.dueDate&&!/received\s+date/i.test(lc)&&(m=lc.match(/Return\s+Due\s+Date.*?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})/i))) h.dueDate=d(m[1]);
     if ((m=lc.match(/Accrued\s+interest[:\s]+\$?([\d,]+\.?\d*)/i))) h.accruedInt=parseFloat(m[1].replace(/,/g,''));
     if ((m=lc.match(/Accrued\s+penalty[:\s]+\$?([\d,]+\.?\d*)/i))) h.accruedPen=parseFloat(m[1].replace(/,/g,''));
     // Parse "As of:" date from accrued lines (e.g., "Accrued interest: $5,962.57 As of: 01-19-2026")
     if (!h.accruedAsOf&&(m=lc.match(/As\s+of[:\s]+(\d{2}[-/]\d{2}[-/]\d{4})/i))) h.accruedAsOf=d(m[1]);
+    if (!h.accruedAsOf&&(m=lc.match(/As\s+of.*?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})/i))) h.accruedAsOf=d(m[1]);
     if ((m=lc.match(/Form\s+Number[:\s]+(\d{4})/i))) h.formType=m[1];
     if ((m=lc.match(/Tax\s+per\s+return[:\s]+\$?([\d,]+\.?\d*)/i))) h.taxPerReturn=parseFloat(m[1].replace(/,/g,''));
     if ((m=lc.match(/Processing\s+date[:\s]+(\d{2}[-/]\d{2}[-/]\d{4})/i))) h.processingDate=d(m[1]);
+    if (!h.processingDate&&(m=lc.match(/Processing\s+date.*?([A-Za-z]+\.?\s+\d{1,2},?\s+\d{4})/i))) h.processingDate=d(m[1]);
     if (/[Ii]nstallment\s+agreement/i.test(lc)) { const dm=lc.match(/(\d{2}[-/]\d{2}[-/]\d{4})/); if(dm)h.iaDate=d(dm[1]); }
 
     let txm=lc.match(/^(\d{3})\s+.+?\s+(?:\d{8}\s+)?(\d{2}-\d{2}-\d{4})\s+(-?\$?[\d,]+\.\d{2})$/);
