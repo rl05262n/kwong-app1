@@ -584,14 +584,21 @@ export default function App() {
         .drop-zone{border:2px dashed #b0c4d8;border-radius:8px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s;}
         .drop-zone:hover{border-color:#007cba;background:#eaf1f8;}
         hr.div{border:none;border-top:1px solid #d0e0f0;margin:20px 0;}
+        @media(max-width:600px){
+          textarea{font-size:9px !important;line-height:1.4 !important;padding:8px !important;}
+          .card{padding:12px;margin:10px 0;}
+          th,td{padding:4px 6px;font-size:12px;}
+          .amt{font-size:11px;}
+          pre{font-size:9px !important;overflow-x:auto;}
+        }
       `}</style>
 
       <div style={{borderBottom:'3px solid #007cba',paddingBottom:12,marginBottom:24}}>
-<div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <LASLogo size={85} />
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+            <LASLogo size={65} />
             <div>
-<h1 style={{margin:0,fontSize:28,fontWeight:700,letterSpacing:'-0.5px'}}>Kwong v. United States</h1>
+<h1 style={{margin:0,fontSize:'clamp(18px, 4vw, 28px)',fontWeight:700,letterSpacing:'-0.5px'}}>Kwong v. United States</h1>
               <span style={{fontSize:15,color:'#4a5568'}}>Form 843 Computation Tool</span>
               <div style={{marginTop:4}}>
                 <span style={{display:'inline-block',padding:'3px 10px',borderRadius:3,fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.5px',
@@ -662,7 +669,7 @@ TRANSACTIONS:
 610   Payment with return                                      09-14-2022     -$412.00
 670   Payment                                                  05-19-2025     -$125.00
 290   Disallowed claim                               20241205  07-08-2024        $0.00`} />
-<div style={{display:'flex',gap:16,alignItems:'center',flexWrap:'wrap',padding:'8px 0'}}>
+<div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',padding:'8px 0',fontSize:12}}>
               <button onClick={()=>document.getElementById('format-guide').toggleAttribute('hidden')}
                 style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline'}}>
                 📋 Show format guide
@@ -678,7 +685,7 @@ TRANSACTIONS:
             </div>
             <div id="format-guide" hidden style={{background:'#eaf1f8',border:'1px solid #b0c4d8',borderRadius:4,padding:12,marginBottom:8,fontSize:11,fontFamily:"'Ubuntu',sans-serif",lineHeight:1.6,color:'#4a5568'}}>
               <strong style={{color:'#007cba'}}>Expected Format:</strong>
-              <pre style={{margin:'6px 0 0',whiteSpace:'pre-wrap',fontSize:11,color:'#4a5568'}}>{`HEADER (include all that appear on transcript):
+              <pre style={{margin:'6px 0 0',whiteSpace:'pre',overflowX:'auto',fontSize:11,color:'#4a5568'}}>{`HEADER (include all that appear on transcript):
 - Form Number: 1040
 - Tax Period: 12-31-2021
 - Tax Per Return: $42,318.00
@@ -728,7 +735,7 @@ Descriptions between code and date can be any text.`}</pre>
       {step===3 && parsed && results && (<>
         <div className="card">
           <h2 style={{margin:'0 0 12px',fontSize:20}}>Transcript Summary</h2>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 24px',fontSize:14}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:'8px 24px',fontSize:14}}>
             <div><strong>Tax Year:</strong> {parsed.taxYear}</div>
             <div><strong>Form:</strong> {parsed.formType}</div>
             <div><strong>Due Date:</strong> {fmt(parsed.statutoryDue)}</div>
