@@ -591,8 +591,14 @@ export default function App() {
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <LASLogo size={85} />
             <div>
-              <h1 style={{margin:0,fontSize:28,fontWeight:700,letterSpacing:'-0.5px'}}>Kwong v. United States</h1>
+<h1 style={{margin:0,fontSize:28,fontWeight:700,letterSpacing:'-0.5px'}}>Kwong v. United States</h1>
               <span style={{fontSize:15,color:'#4a5568'}}>Form 843 Computation Tool</span>
+              <div style={{marginTop:4}}>
+                <span style={{display:'inline-block',padding:'3px 10px',borderRadius:3,fontSize:11,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.5px',
+                  background:daysLeft<30?'#FB6962':'#007cba',color:'#fff'}}>
+                  {daysLeft} days until deadline
+                </span>
+              </div>
             </div>
           </div>
           <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
@@ -603,9 +609,6 @@ export default function App() {
             )}
             <button onClick={()=>setShowSettings(!showSettings)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,padding:4}} title="Settings">⚙️</button>
           </div>
-        </div>
-        <div style={{display:'flex',justifyContent:'flex-end',marginTop:4}}>
-          <span className={`badge ${daysLeft<30?'badge-dead':'badge-warn'}`}>{daysLeft} days until deadline</span>
         </div>
         {showSettings && (
           <div style={{marginTop:12,padding:16,background:'#e8f0f7',borderRadius:6,fontSize:13}}>
@@ -651,7 +654,7 @@ TRANSACTIONS:
 806   W-2 or 1099 withholding                           04-15-2023  -$51,938.00
 166   Penalty for filing tax return after due date      06-05-2023   $1,162.17
 276   Penalty for late payment of tax         20231805  06-05-2023     $258.26`} />
-<div style={{display:'flex',gap:16,alignItems:'center',padding:'8px 0'}}>
+<div style={{display:'flex',gap:16,alignItems:'center',flexWrap:'wrap',padding:'8px 0'}}>
               <button onClick={()=>document.getElementById('format-guide').toggleAttribute('hidden')}
                 style={{background:'none',border:'none',cursor:'pointer',color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline'}}>
                 📋 Show format guide
@@ -659,6 +662,10 @@ TRANSACTIONS:
               <a href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID" target="_blank" rel="noreferrer"
                 style={{color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline',cursor:'pointer'}}>
                 ▶️ Watch tutorial
+              </a>
+              <a href="https://github.com/rl05262n/kwong-app1" target="_blank" rel="noreferrer"
+                style={{color:'#007cba',fontSize:12,fontWeight:600,textDecoration:'underline',cursor:'pointer'}}>
+                ⚙️ Source code
               </a>
             </div>
             <div id="format-guide" hidden style={{background:'#eaf1f8',border:'1px solid #b0c4d8',borderRadius:4,padding:12,marginBottom:8,fontSize:11,fontFamily:"'Ubuntu',sans-serif",lineHeight:1.6,color:'#4a5568'}}>
