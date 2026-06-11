@@ -46,4 +46,3 @@ This is a **computation aid only**. All outputs require independent verification
 
 ## License
 
-MIT
