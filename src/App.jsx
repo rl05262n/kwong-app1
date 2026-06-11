@@ -1194,15 +1194,23 @@ export default function App() {
         body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:8000,
           messages:[{role:"user",content:[
             {type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}},
-            {type:"text",text:`Extract ALL text from this IRS Account Transcript VERBATIM.\n\nHEADER — reproduce these lines exactly as printed, one field per line, keeping every label word and every date (do NOT reword, merge, summarize, or omit any of them):\nRequest Date: MM-DD-YYYY\nForm Number: NNNN\nReport for Tax Period Ending: MM-DD-YYYY\nAccount balance: $X,XXX.XX\nAccrued interest: $X,XXX.XX As of: MM-DD-YYYY\nAccrued penalty: $X,XXX.XX As of: MM-DD-YYYY\nTax per return: $X,XXX.XX\nReturn due date or return received date (whichever is later): MM-DD-YYYY\nProcessing date: MM-DD-YYYY\n\nTRANSACTIONS: Each on ONE line as:\nCODE  Description  CYCLE  MM-DD-YYYY  $AMOUNT\n\nExample:\n150   Tax return filed                               20231805  06-05-2023  $77,764.00\n806   W-2 or 1099 withholding                                  04-15-2023  -$51,938.00\n240   Miscellaneous penalty IRC 6662                 20222605  07-18-2022  $1,547.00\n971   Installment agreement established                        07-28-2021  $0.00\n\nCRITICAL: 3-digit code, MM-DD-YYYY date, $AMOUNT on every line; preserve minus signs on credits and payments. Include EVERY transaction from ALL pages (150/240/276/271/290/291/196/197/670/706/971 and all others) — never truncate or summarize long payment lists. Only transcript text.`}
+            {type:"text",text:`Extract ALL text from this IRS Account Transcript VERBATIM.\n\nHEADER — reproduce these lines exactly as printed, one field per line, keeping every label word and every date (do NOT reword, merge, summarize, or omit any of them):\nRequest Date: MM-DD-YYYY\nForm Number: NNNN\nReport for Tax Period Ending: MM-DD-YYYY\nAccount balance: $X,XXX.XX\nAccrued interest: $X,XXX.XX As of: MM-DD-YYYY\nAccrued penalty: $X,XXX.XX As of: MM-DD-YYYY\nTax per return: $X,XXX.XX\nReturn due date or return received date (whichever is later): MM-DD-YYYY\nProcessing date: MM-DD-YYYY\n\nTRANSACTIONS: Each on ONE line as:\nCODE  Description  CYCLE  MM-DD-YYYY  $AMOUNT\n\nExample:\n150   Tax return filed                               20231805  06-05-2023  $77,764.00\n806   W-2 or 1099 withholding                                  04-15-2023  -$51,938.00\n240   Miscellaneous penalty IRC 6662                 20222605  07-18-2022  $1,547.00\n971   Installment agreement established                        07-28-2021  $0.00\n\nCRITICAL: 3-digit code, MM-DD-YYYY date, $AMOUNT on every line; preserve minus signs on credits and payments. Include EVERY transaction from ALL pages (150/240/276/271/290/291/196/197/670/706/971 and all others) — never truncate or summarize long payment lists. OUTPUT RULES: Respond with ONLY the transcript text. Your very first character must be the first header line (e.g. "Request Date: ..."). No preamble ("Here is...", "Below is..."), no markdown code fences, no closing commentary.`}
           ]}]})});
       const data=await resp.json();
       if (!resp.ok) {
         alert(`API error (${resp.status}): ${data.error?.message || JSON.stringify(data)}`);
         setLoading(false); return;
       }
-      const extracted=data.content?.find(c=>c.type==='text')?.text||'';
-      setText(extracted);setStep(2);
+      let extracted = data.content?.find(c=>c.type==='text')?.text || '';
+// strip markdown fences if the model wrapped the output
+extracted = extracted.replace(/^```[a-z]*\n?/i, '').replace(/\n?```\s*$/, '');
+// drop leading preamble lines until the first recognizable transcript line
+const exLines = extracted.split('\n');
+const firstReal = exLines.findIndex(l =>
+  /^(request date|form number|report for|tax period|account balance|accrued|tax per return|return due|processing date|\d{3}\s)/i.test(l.trim())
+);
+if (firstReal > 0) extracted = exLines.slice(firstReal).join('\n');
+setText(extracted.trim()); setStep(2);
     }catch(e){alert(`PDF extraction failed: ${e.message}`);}
     setLoading(false);
   },[apiKey]);
