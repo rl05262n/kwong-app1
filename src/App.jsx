@@ -482,7 +482,28 @@ function reconstructAccruedInterest(p){
   }
   const sim=simulateDailyInterest(comps,pays,p.accruedAsOf,false);
   return {predicted:sim.interest,figure:p.accruedInt,
+    from:lastInt||p.statutoryDue, baseBal:lastInt?comps[0].amount:null,
     pct:p.accruedInt>0?Math.abs((p.accruedInt-sim.interest)/p.accruedInt*100):0};
+}
+
+// Render simulator segments for a work exhibit: every charged segment shown
+// explicitly; consecutive disregarded segments (often split by in-window
+// payments) merged into one §7508A(d) line for readability.
+function segmentLines(segments){
+  const out=[];let i=0;
+  while(i<segments.length){
+    const s=segments[i];
+    if(s.excluded){
+      let j=i,days=0,to=s.to,endBal=s.endBal;
+      while(j<segments.length&&segments[j].excluded){days+=segments[j].days;to=segments[j].to;endBal=segments[j].endBal;j++;}
+      out.push(`  ${s.from} → ${to}: DISREGARDED §7508A(d), ${days}d, bal $${$(s.startBal)}→$${$(endBal)} (payments still applied; no accrual)`);
+      i=j;
+    } else {
+      out.push(`  ${s.from} → ${s.to}: ${s.rate}, ${s.days}d, bal $${$(s.startBal)}→$${$(s.endBal)} (+$${$(s.interest)})`);
+      i++;
+    }
+  }
+  return out;
 }
 
 // IRS-side reconstruction of the transcript's ACCRUED (unassessed) FTP:
@@ -675,7 +696,7 @@ function runAnalysis(p, opts={}) {
       `$${$(p.ftp.assessed)} (assessed) − $${$(recomputed)} (recomputed) = $${$(abate)}`,
       `Alternative grid available via the toggle above the table — the two grids differ by exactly one straddle month.`,
     ];
-    if(p.accruedPen>0.005)work.push(``,`Accrued (unassessed) penalty of $${$(p.accruedPen)} is NOT a Line 2 item; the IRS recomputes accruals upon abatement. Post-${fmt(DISASTER_END)} accrual on the correct base is otherwise unaffected.`);
+    if(p.accruedPen>0.005)work.push(``,`Accrued (unassessed) penalty of $${$(p.accruedPen)} is NOT a Line 2 item — see the "\u00a76651 FTP — accrued" recomputation row below for the quantified correction.`);
     results.items.push({code:`§6651(a)(${isA3?'3':'2'}) FTP`,irsAssessed:p.ftp.assessed,recomputed,abatement:abate,work,ftpDetail:ftpRes.detail});
     results.totalMain+=abate;
   } else if (p.accruedPen>0.005 && p.ftp.assessed<=0.005) {
@@ -772,7 +793,7 @@ function runAnalysis(p, opts={}) {
       `$${$(assessedInt)} − $${$(recomputed)} = $${$(abate)}`,
       `Interest on every abated penalty is captured here automatically: the assessed figure includes the IRS's interest-on-penalties, and the recomputed base excludes the abated penalties. No separate "interest on penalty" line is claimed (it would double-count).`,
     ];
-    if(p.accruedInt>0.005)work.push(``,`Accrued (unassessed) interest of $${$(p.accruedInt)} is NOT a Line 2 item; it recomputes automatically on the corrected balance upon abatement.`);
+    if(p.accruedInt>0.005)work.push(``,`Accrued (unassessed) interest of $${$(p.accruedInt)} is NOT a Line 2 item — see the "\u00a76601 Interest — accrued" recomputation row below for the quantified correction.`);
     results.items.push({code:'§6601 Interest',irsAssessed:assessedInt,recomputed,abatement:abate,work});
     results.totalMain+=abate;
   } else if (p.accruedInt>0.005 && assessedInt<=0.005) {
@@ -832,6 +853,11 @@ function runAnalysis(p, opts={}) {
   if (disasterApplies && p.ftp.assessed<=0.005 && p.ftp.events.some(e=>e.amount<0)) {
     results.notes.push('Assessed FTP was previously abated/reversed (TC 271/277) — there is no assessed-FTP amount left to claim on Line 2; the remaining FTP relief is in the accrual correction below.');
   }
+  // IRS-side reconstructions of the transcript accrual figures — cited in the
+  // work exhibits below and surfaced again in the verification card.
+  const accrIntRecon=reconstructAccruedInterest(p);
+  const accrFtpRecon=accrFtpReconResolved||reconstructAccruedFTP(p,{
+    base:accrFtpBase, originalStart:accrFtpStart, returnTimely, onePctFrom:ftpOnePctFrom});
   if (disasterApplies && p.accruedAsOf && (p.accruedInt>0.005 || p.accruedPen>0.005)) {
     if (p.accruedInt>0.005) {
       const accrComps=buildInterestBaseComps();
@@ -842,7 +868,24 @@ function runAnalysis(p, opts={}) {
       const work=[
         `Transcript accrued (unassessed) interest as of ${fmt(p.accruedAsOf)}: $${$(p.accruedInt)}`,
         ``,
+        `── IRS-side check (uncorrected module, full §6621 rates) ──`,
+        ...(accrIntRecon?[
+          accrIntRecon.baseBal!=null
+            ?`Module balance at last interest assessment (${fmt(accrIntRecon.from)}): $${$(accrIntRecon.baseBal)} (tax + assessed penalties + assessed interest − payments to date)`
+            :`No prior interest assessment — module accrual reconstructed from ${fmt(accrIntRecon.from)}`,
+          `Accrued straight through (no §7508A(d) disregard) → ${fmt(p.accruedAsOf)}: $${$(accrIntRecon.predicted)}  (transcript $${$(p.accruedInt)}, Δ ${accrIntRecon.pct.toFixed(2)}%)`,
+          `The IRS path accrues through the disaster window; the corrected path below disregards those days.`,
+        ]:[`(IRS-side reconstruction unavailable for this account shape)`]),
+        ``,
         `── Corrected accrual (§7508A(d) days disregarded) ──`,
+        `Base components (corrected account — abated items excluded):`,
+        ...accrComps.map(cc=>`  • $${$(cc.amount)} — ${cc.label||'component'}, interest from ${fmt(cc.start)}`),
+        `Payments applied: ${p.payments.length} (tax-first)`,
+        `Days disregarded (1/20/2020–7/10/2023): ${corr.daysExcluded}`,
+        ``,
+        `── Rate segments (corrected; consecutive disregarded periods merged) ──`,
+        ...segmentLines(corr.segments),
+        ``,
         `Corrected TOTAL interest, due date → ${fmt(p.accruedAsOf)}: $${$(corr.interest)} (${corr.daysExcluded} disaster days disregarded; ${p.payments.length} payments applied tax-first)`,
         `Less recomputed ASSESSED interest (claimed above): $${$(recomputedIntAssessed)}`,
         `Corrected accrued interest: $${$(correctedAccrued)}`,
@@ -863,11 +906,27 @@ function runAnalysis(p, opts={}) {
       const correctedTotal=c.recomputed; // charged months only under either grid
       const correctedAccrued=Math.max(0,r2(correctedTotal-recomputedFTPAssessed));
       const correction=Math.min(p.accruedPen,Math.max(0,r2(p.accruedPen-correctedAccrued)));
+      const chargedRows=c.detail.filter(rw=>!rw.skipped);
+      const comp={};for(const rw of chargedRows)comp[rw.rate]=(comp[rw.rate]||0)+1;
+      const compLine='Rate composition (charged months): '+(chargedRows.length
+        ?['0.5%','0.25%','1%'].filter(k=>comp[k]).map(k=>`${comp[k]} mo @ ${k}${k==='0.25%'?' (§6651(h) IA)':k==='1%'?' (§6651(d) post-levy-notice)':''}`).join(' + ')
+        :'none — balance fully paid before any chargeable month');
+      const cumPct=r2(chargedRows.reduce((s,rw)=>s+parseFloat(rw.rate),0));
       const work=[
         `Transcript accrued (unassessed) penalty as of ${fmt(p.accruedAsOf)}: $${$(p.accruedPen)} — treated as §6651 FTP${p.ftf.assessed>0.005?' (account also shows FTF; verify the accrued-penalty composition)':''}`,
         ``,
+        `── IRS-side check (uncorrected schedule) ──`,
+        ...(accrFtpRecon?[
+          `Months beginning after the last FTP transaction, on the IRS's own anchors${p.iaDate&&returnTimely?', §6651(h) 0.25% during the IA':''}${ftpOnePctFrom?`, §6651(d) 1% from ${fmt(ftpOnePctFrom)}`:''}: ${accrFtpRecon.months} mo → $${$(accrFtpRecon.predicted)}  (transcript $${$(p.accruedPen)}, Δ ${accrFtpRecon.pct.toFixed(2)}%)`,
+          `The IRS schedule keeps charging through the disaster window; the corrected grid below removes those months.`,
+        ]:[`(IRS-side reconstruction unavailable for this account shape)`]),
+        ``,
         `── Corrected accrual (§7508A(d)) ──`,
         c.note,
+        compLine,
+        `Cumulative rate consumed: ${cumPct.toFixed(2)}% of the 25% cap${c.capBound?' — CAP BINDING (the penalty has stopped growing; removed disaster months are replaced by later capped months)':''}`,
+        ...(chargedRows.length?[`Charged months run ${chargedRows[0].date} → ${chargedRows[chargedRows.length-1].date} (month-by-month table below)`]:[]),
+        ...(ftpGrid==='disregard'&&c.skipped>0?[`${c.skipped} disaster-window months removed (would-be charges $${$(c.abatementRaw||0)}); removed months do not consume the cap.`]:[]),
         `Corrected TOTAL FTP, start → ${fmt(p.accruedAsOf)}: $${$(correctedTotal)} (${c.months} charged month(s)${p.iaDate&&returnTimely&&!ftpOnePctFrom?' — §6651(h) 0.25% IA rate where applicable':''}${ftpOnePctFrom?` — §6651(d) 1% months honored from ${fmt(ftpOnePctFrom)}`:''})`,
         `Less recomputed ASSESSED FTP (claimed above): $${$(recomputedFTPAssessed)}`,
         `Corrected accrued FTP: $${$(correctedAccrued)}`,
@@ -899,9 +958,6 @@ function runAnalysis(p, opts={}) {
   const penTotal=r2(Math.max(p.ftf.assessed,0)+Math.max(p.ftp.assessed,0)+Math.max(p.est.assessed,0)+Math.max(p.acc.assessed,0));
   const paidTotal=r2(p.payments.reduce((s,x)=>s+x.amount,0));
   const reconBalance=r2(p.netTax+penTotal+assessedInt-paidTotal);
-  const accrIntRecon=reconstructAccruedInterest(p);
-  const accrFtpRecon=accrFtpReconResolved||reconstructAccruedFTP(p,{
-    base:accrFtpBase, originalStart:accrFtpStart, returnTimely, onePctFrom:ftpOnePctFrom});
   results.verification={
     interest:intRecon, ftp:ftpRecon?{...ftpRecon,assessed:p.ftp.assessed,variance:r2(p.ftp.assessed-ftpRecon.total)}:null,
     accruedInterest:accrIntRecon, accruedFTP:accrFtpRecon,
@@ -1469,7 +1525,7 @@ Descriptions between code and date can be any text.`}</pre>
         </div>}
 
         <div className="card" style={{fontSize:13,color:'#4a5568'}}>
-          <strong>Legal Basis:</strong> I.R.C. § 7508A(d) (2019 version); <em>Kwong v. United States</em>, 179 Fed. Cl. 382 (2025); <em>Abdo v. Commissioner</em>, 162 T.C. 148 (2024). Disaster period: Jan 20, 2020 – Jul 10, 2023. Protective items (§6662 crystallization) rest on a reading beyond the holdings of those cases and are labeled accordingly. Computation aid only, verify per Circular 230 § 10.22.
+          <strong>Legal Basis:</strong> I.R.C. § 7508A(d) (2019 version); <em>Kwong v. United States</em>, 179 Fed. Cl. 382 (2025); <em>Abdo v. Commissioner</em>, 162 T.C. 148 (2024). Disaster period: Jan 20, 2020 – Jul 10, 2023. Protective items (§6662 crystallization) rest on a reading beyond the holdings of those cases and are labeled accordingly. Computation aid only — verify per Circular 230 § 10.22.
         </div>
 
         <div style={{display:'flex',gap:8,margin:'16px 0'}}>
