@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
 import lasLogo from './The_Legal_Aid_Society_logo.png';
-// ═══════════════════════════════════════════════════════════════
+import Form843Panel from './form843.jsx';
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════
 const DISASTER_START = new Date(2020, 0, 20);
 const DISASTER_END = new Date(2023, 6, 10);   // last disregarded day
 const KWONG_DUE = new Date(2023, 6, 10);      // postponed deadline under Kwong
@@ -106,7 +105,7 @@ function parseTranscript(text) {
     return null;};
   const pens = {FTF:{a:0,r:0,events:[]},FTP:{a:0,r:0,events:[]},EST:{a:0,r:0,events:[]},ACC:{a:0,r:0,events:[]}};
   let interest={a:0,r:0}, penInterest={a:0,r:0}, taxGross=0, tax150=0, credits=0, tc150date=null;
-  const intEvents=[], taxAdjEvents=[], payments=[], unmatchedLines=[];
+  const intEvents=[], taxAdjEvents=[], payments=[], creditEvents=[], unmatchedLines=[];
 
   for (const line of lines) {
     const lc = line.trim(); let m;
@@ -151,8 +150,8 @@ function parseTranscript(text) {
     else if(info.type==='pen_int'){if(info.sign>0)penInterest.a+=Math.abs(amt);else penInterest.r+=Math.abs(amt);if(txDate&&amt!==0)intEvents.push({date:txDate,amount:Math.abs(amt)*info.sign,tc});}
     else if(info.type==='tax'){const v=Math.abs(amt);taxGross+=v-tax150;tax150=v;tc150date=txDate;}
     else if(info.type==='tax_adj'){const v=Math.abs(amt)*(info.sign||1);taxGross+=v;if(txDate&&amt!==0)taxAdjEvents.push({date:txDate,amount:v,tc});}
-    else if(info.type==='credit'){credits+=Math.abs(amt);}
-    else if(info.type==='credit_offset'){credits-=Math.abs(amt);}
+    else if(info.type==='credit'){credits+=Math.abs(amt);if(txDate&&amt!==0)creditEvents.push({date:txDate,amount:-Math.abs(amt),tc});}
+else if(info.type==='credit_offset'){credits-=Math.abs(amt);if(txDate&&amt!==0)creditEvents.push({date:txDate,amount:Math.abs(amt),tc});}
     else if(info.type==='pay'){if(txDate&&amt!==0)payments.push({date:txDate,amount:Math.abs(amt),tc});}
     else if(info.type==='pay_rev'){if(txDate&&amt!==0)payments.push({date:txDate,amount:-Math.abs(amt),tc});}
   }
@@ -230,7 +229,7 @@ function parseTranscript(text) {
     interest:{assessed:r2(interest.a-interest.r)},
     penInterest:{assessed:r2(penInterest.a-penInterest.r)},
     intEvents:intEvents.sort((a,b)=>a.date-b.date),
-    payments:payments.sort((a,b)=>a.date-b.date), parseWarnings, unmatchedLines};
+    payments:payments.sort((a,b)=>a.date-b.date), creditEvents:creditEvents.sort((a,b)=>a.date-b.date), parseWarnings, unmatchedLines};
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -591,7 +590,7 @@ function runAnalysis(p, opts={}) {
   // pure model-convention noise — so no abatement items are generated at all.
   const disasterApplies = !!((p.statutoryDue && p.statutoryDue <= DISASTER_END) || (p.origDue && p.origDue <= DISASTER_END));
   if(!disasterApplies){
-    results.notes.push(`Module due dates (${fmt(p.origDue)} / ${fmt(p.statutoryDue)}) fall after the disaster period ended ${fmt(DISASTER_END)} — no §7508A(d)/Kwong relief is available for this module. Verification and reconciliation are still shown.`);
+    results.notes.push(`Module due dates (${fmt(p.origDue)} / ${fmt(p.statutoryDue)}) fall after the disaster period ended ${fmt(DISASTER_END)} — no §7508A(d)/Kwong relief is available for FTF, FTP, or interest on this module; only §6654 installments that fall inside the window (if any) qualify. Verification and reconciliation are still shown.`);
   }
   if((lastIntDate&&lastIntDate>RATE_TABLE_END)||(p.accruedAsOf&&p.accruedAsOf>RATE_TABLE_END)){
     results.warnings.push(`Computation dates extend past the rate table (ends ${fmt(RATE_TABLE_END)}); getRate() falls back to 7% beyond it. Add the newly announced §6621 quarterly rate to RATES.`);
@@ -708,21 +707,30 @@ function runAnalysis(p, opts={}) {
   // holiday rollovers are not applied. For 2019–2022 modules every rollover
   // lands on the same side of the disaster window, so the IN/OUT count is
   // unaffected.
-  let recomputedEST=0;
-  if (disasterApplies && p.est.assessed > 0.005) {
+let recomputedEST=0;
+  // §6654 runs off installment deadlines DURING the tax year, not the return
+  // due date — a post-disaster module (e.g. TY2023, due 4/15/2024) can still
+  // have Q1/Q2-2023 installments inside the window. Gate independently of
+  // disasterApplies.
+  if (p.est.assessed > 0.005) {
     const ty=parseInt(p.taxYear);
     const dls=[new Date(ty,3,15),new Date(ty,5,15),new Date(ty,8,15),new Date(ty+1,0,15)];
     const inD=dls.filter(dl=>dl>=DISASTER_START&&dl<=DISASTER_END).length;
-    const abate=inD===4?p.est.assessed:r2(p.est.assessed*inD/4);
-    recomputedEST=r2(p.est.assessed-abate);
-    const work=[
-      `IRS assessed (TC 170/173 net): $${$(p.est.assessed)}`,
-      `Quarterly deadlines: ${dls.map(dl=>`${fmt(dl)} (${dl>=DISASTER_START&&dl<=DISASTER_END?'IN':'OUT'})`).join(', ')}`,
-      `${inD}/4 installment deadlines inside the disaster period → ${inD===4?'full':'proportional'} abatement`,
-      `Abatement: $${$(abate)}`,
-    ];
-    results.items.push({code:'§6654 Est. Tax',irsAssessed:p.est.assessed,recomputed:recomputedEST,abatement:abate,work});
-    results.totalMain+=abate;
+    if(inD===0){
+      recomputedEST=p.est.assessed; // no relief — the FULL addition survives into the interest base
+      results.notes.push(`§6654 addition of $${$(p.est.assessed)}: no installment deadline falls inside the disaster window — no §7508A(d) relief for this component.`);
+    } else {
+      const abate=inD===4?p.est.assessed:r2(p.est.assessed*inD/4);
+      recomputedEST=r2(p.est.assessed-abate);
+      const work=[
+        `IRS assessed (TC 170/173 net): $${$(p.est.assessed)}`,
+        `Quarterly deadlines: ${dls.map(dl=>`${fmt(dl)} (${dl>=DISASTER_START&&dl<=DISASTER_END?'IN':'OUT'})`).join(', ')}`,
+        `${inD}/4 installment deadlines inside the disaster period → ${inD===4?'full':'proportional'} abatement`,
+        `Abatement: $${$(abate)} — pro-rata allocation; verify against a Form 2210-style per-quarter computation before accepting a partial allowance.`,
+      ];
+      results.items.push({code:'§6654 Est. Tax',irsAssessed:p.est.assessed,recomputed:recomputedEST,abatement:abate,work});
+      results.totalMain+=abate;
+    }
   }
 
   // ── §6601 interest — ONE corrected-account simulation (P1/P2/P4) ──
@@ -1173,15 +1181,21 @@ export default function App() {
   const [apiKey,setApiKey]=useState('');
   const [showSettings,setShowSettings]=useState(false);
   const [ftpGrid,setFtpGrid]=useState('postponed');
+  const [altResults,setAltResults]=useState(null);
 
   const handleParse = useCallback(()=>{
     const p=parseTranscript(text); setParsed(p);
-    const r=runAnalysis(p,{ftpGrid}); setResults(r); setStep(3);
+    const r=runAnalysis(p,{ftpGrid}); setResults(r);
+    setAltResults(runAnalysis(p,{ftpGrid:ftpGrid==='postponed'?'disregard':'postponed'}));
+    setStep(3);
   },[text,ftpGrid]);
 
   const handleGridChange = useCallback((g)=>{
     setFtpGrid(g);
-    if(parsed){ setResults(runAnalysis(parsed,{ftpGrid:g})); }
+    if(parsed){
+      setResults(runAnalysis(parsed,{ftpGrid:g}));
+      setAltResults(runAnalysis(parsed,{ftpGrid:g==='postponed'?'disregard':'postponed'}));
+    }
   },[parsed]);
 
   const handlePDF = useCallback(async(file)=>{
@@ -1503,6 +1517,8 @@ Descriptions between code and date can be any text.`}</pre>
         </div>
 
         <VerificationCard verification={results.verification} />
+
+        <Form843Panel parsed={parsed} results={results} altResults={altResults} />
 
         {results.paymentSchedule && (
           <div className="card">
